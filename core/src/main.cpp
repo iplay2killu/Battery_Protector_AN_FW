@@ -28,7 +28,10 @@ esp_err_t Main::setup(void)
 
     ESP_LOGI(LOG_TAG, "Setup!");
 
-    status |= led.init();
+    // status |= led.init();
+
+    cppButton.enableInterrupt(GPIO_INTR_NEGEDGE);
+    cppButton.setEventHandler(&button_event_handler);
 
     return status;
 }
@@ -38,10 +41,15 @@ void Main::loop(void)
     ESP_LOGI(LOG_TAG, "Hello World!");
 
     ESP_LOGI(LOG_TAG, "LED on");
-    led.set(true);
-    vTaskDelay(pdSECOND);
+    led.setLevel(true);
+    vTaskDelay(pdSECOND * 2);
 
     ESP_LOGI(LOG_TAG, "LED off");
-    led.set(false);
-    vTaskDelay(pdSECOND);
+    led.setLevel(false);
+    vTaskDelay(pdSECOND * 2);
+}
+
+void Main::button_event_handler(void *handler_args, esp_event_base_t base, int32_t id, void *event_data)
+{
+    std::cout << "Button triggered interrupt with ID: " << id << '\n';
 }

@@ -1,65 +1,65 @@
 #pragma once
 
 #include "driver/gpio.h"
+#include "esp_event.h"
 
-namespace Gpio
+namespace GPIO
 {
+    ESP_EVENT_DECLARE_BASE(INPUT_EVENTS);
 
     class GpioBase
     {
     protected:
-        const gpio_num_t _pin;
-        const bool _inverted_logic = false;
-        const gpio_config_t _cfg;
+        gpio_num_t _pin;
+        bool _active_low;
+    }; // GpioBase Class
+
+    class GpioInput : public GpioBase
+    {
+    private:
+        esp_err_t _init(const gpio_num_t pin, const bool activeLow);
+        bool _event_handler_set = false;
+        ;
+        static bool _interrupt_service_installed; // same for all instances
 
     public:
-        constexpr GpioBase(const gpio_num_t pin,
-                           const gpio_config_t &config,
-                           const bool invert_logic = false) : _pin{pin},
-                                                              _inverted_logic{invert_logic},
-                                                              _cfg{config}
-        {
-        }
+        GpioInput(const gpio_num_t pin, const bool activeLow);
+        GpioInput(const gpio_num_t pin);
+        GpioInput(void);
+        esp_err_t init(const gpio_num_t pin, const bool activeLow);
+        esp_err_t init(const gpio_num_t pin);
+        int read(void);
 
-        virtual bool state(void) = 0;
-        virtual esp_err_t set(const bool state) = 0;
+        esp_err_t enablePullup(void);
+        esp_err_t disablePullup(void);
+        esp_err_t enablePulldown(void);
+        esp_err_t disablePulldown(void);
+        esp_err_t enablePullupPulldown(void);
+        esp_err_t disablePullupPulldown(void);
 
-        [[nodiscard]] esp_err_t init(void);
+        esp_err_t enableInterrupt(gpio_int_type_t int_type);
+        esp_err_t setEventHandler(esp_event_handler_t Gpio_e_h);
+        static void IRAM_ATTR gpio_isr_callback(void *arg); // ISR callback function
+        // static means only one instance of this method in the same memory location
+        // IRAM_ATTR means this function is in RAM memory (quicker access compared to flash memory)
 
-    }; // GpioBase
+    }; // GpioInput Class
 
     class GpioOutput : public GpioBase
     {
-        bool _state = false; // map the users wish
+    private:
+        int _level = 0;
+        esp_err_t _init(const gpio_num_t pin, const bool activeLow);
 
     public:
-        constexpr GpioOutput(const gpio_num_t pin, const bool invert = false) : GpioBase{pin,
-                                                                                         gpio_config_t{
-                                                                                             .pin_bit_mask = static_cast<uint64_t>(1) << pin,
-                                                                                             .mode = GPIO_MODE_OUTPUT,
-                                                                                             .pull_up_en = GPIO_PULLUP_DISABLE,
-                                                                                             .pull_down_en = GPIO_PULLDOWN_ENABLE,
-                                                                                             .intr_type = GPIO_INTR_DISABLE},
-                                                                                         invert}
-        {
-        }
-
-        [[nodiscard]] esp_err_t init(void);
-
-        esp_err_t set(const bool state);
-        // esp_err_t toggle(void);
-        bool state(void) { return _state; }
-    };
-    /*
-    class GpioInput
-    {
-        gpio_num_t _pin;
-        const bool _inverted_logic = false;
-
-    public:
-        esp_err_t init(void);
-
-        bool state(void);
-    };
-    */
-} // namespace GPIO
+        GpioOutput(const gpio_num_t pin, const bool activeLow);
+        GpioOutput(const gpio_num_t pin);
+        GpioOutput(void);
+        esp_err_t init(const gpio_num_t pin, const bool activeLow);
+        esp_err_t init(const gpio_num_t pin);
+        esp_err_t on(void);
+        esp_err_t off(void);
+        esp_err_t toggle(void);
+        esp_err_t setLevel(int level);
+    }; // GpioOutput Class
+}
